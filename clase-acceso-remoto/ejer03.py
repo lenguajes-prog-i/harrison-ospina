@@ -31,4 +31,6 @@ archivo_autos.close()
 archivo_autos= open("autos.txt", "rb")
 autos= pickle.load(archivo_autos) 
 archivo_autos.close()
-print(lista_autos)
+
+for auto in autos:
+    print(auto)
