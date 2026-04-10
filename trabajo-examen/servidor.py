@@ -1,7 +1,6 @@
 import socket
 import threading
 
-
 # ---------------------------------------------
 #  SALAS PREDEFINIDAS
 # ---------------------------------------------
@@ -11,10 +10,6 @@ CONFIG_SALAS = {
     "random":  5557,
 }
 
-
-# ----------------------------------------------
-#  CLASE SALA
-# ----------------------------------------------
 class Sala:
     def __init__(self, nombre, puerto):
         self.nombre = nombre
@@ -55,10 +50,6 @@ class Sala:
             self.agregar_cliente(manejador)
             manejador.start()
 
-
-# ----------------------------------------------
-#  CLASE MANEJADOR CLIENTE
-# ----------------------------------------------
 class ManejadorCliente(threading.Thread):
     def __init__(self, conexion, direccion, sala):
         super().__init__(daemon=True)
@@ -75,23 +66,19 @@ class ManejadorCliente(threading.Thread):
 
     def run(self):
         try:
-            # Paso 1: pedir nickname de forma bloqueante
-            self.enviar("__ASK_NICKNAME__")  # señal especial al cliente
+            self.enviar("__ASK_NICKNAME__")
             self.nickname = self.conexion.recv(1024).decode("utf-8").strip()
 
-            # Paso 2: confirmar y avisar que ya puede enviar comandos
             self.enviar(f"Bienvenido {self.nickname}! Estás en la sala '{self.sala.nombre}'.")
-            self.enviar("__READY__")  # señal: ya puede enviar comandos
+            self.enviar("__READY__")
             self.sala.transmitir(f"[+] {self.nickname} se unió a la sala", emisor=self)
             print(f"[+] {self.nickname} se unió a sala '{self.sala.nombre}'")
 
-            # Paso 3: loop de comandos
             while True:
                 datos = self.conexion.recv(1024).decode("utf-8").strip()
                 if not datos:
                     break
                 self.manejar_comando(datos)
-
         except:
             pass
         finally:
@@ -108,42 +95,33 @@ class ManejadorCliente(threading.Thread):
         elif datos == "/rooms":
             info = "\n".join([f"  - {nombre}: puerto {puerto}" for nombre, puerto in CONFIG_SALAS.items()])
             self.enviar(f"Salas disponibles:\n{info}")
-
-        elif datos.startswith("/join "):
-            self.enviar("Para cambiar de sala usa /leave y elige una nueva desde el menú, o usa /join <sala> directamente.")
+            
+        elif not datos.startswith("/"):
+            # Si no empieza con /, se envía como mensaje normal
+            self.enviar_mensaje(datos)
 
         else:
-            self.enviar("Comandos disponibles: /msg <texto>, /rooms, /join <sala>, /leave, /quit")
+            self.enviar("Comandos: /msg <texto>, /rooms, /leave, /quit")
 
     def enviar_mensaje(self, mensaje):
         mensaje_completo = f"[{self.nickname}] {mensaje}"
         self.sala.transmitir(mensaje_completo, emisor=self)
-        print(f"[{self.nickname}] en '{self.sala.nombre}': {mensaje}")
+        # Log del servidor detallando origen y destino
+        print(f"[{self.nickname}] -> [SALA: {self.sala.nombre}]: {mensaje}")
 
     def desconectar(self):
         self.sala.transmitir(f"[-] {self.nickname} salió de la sala", emisor=self)
         self.sala.remover_cliente(self)
-        print(f"[-] {self.nickname} desconectado de '{self.sala.nombre}'")
         try:
             self.conexion.close()
         except:
             pass
 
-
-# ---------------------------------------------
-#  PUNTO DE ENTRADA
-# ---------------------------------------------
 if __name__ == "__main__":
     print("=== SERVIDOR DE CHAT ===")
     for nombre, puerto in CONFIG_SALAS.items():
-        print(f"  - {nombre}: puerto {puerto}")
-    print()
-
-    for nombre, puerto in CONFIG_SALAS.items():
         sala = Sala(nombre, puerto)
-        sala.iniciar()
-
-    print("[INFO] Servidor listo. Esperando conexiones...\n")
+        sala.init_hilo = sala.iniciar()
 
     try:
         threading.Event().wait()
