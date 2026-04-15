@@ -16,11 +16,7 @@ objeto_auto4= Auto("Ford", "MNO345")
 
 lista_autos= [objeto_auto, objeto_auto1, objeto_auto2, objeto_auto3, objeto_auto4]
 
-# print(objeto_auto)
-# print(objeto_auto1)
-# print(objeto_auto2)
-# print(objeto_auto3)
-# print(objeto_auto4)
+
 
 archivo_autos= open("autos.txt", "wb")
 
